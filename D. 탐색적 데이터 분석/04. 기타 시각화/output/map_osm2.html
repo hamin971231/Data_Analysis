@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_5298c17a9082dae54de9e1d6354070f3 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_5298c17a9082dae54de9e1d6354070f3" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_5298c17a9082dae54de9e1d6354070f3 = L.map(
+                "map_5298c17a9082dae54de9e1d6354070f3",
+                {
+                    center: [37.5507563, 126.9254901],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 17,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_f6cf972673db5e9bdc108134db03e2a1 = L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {"attribution": "Data by \u0026copy; \u003ca target=\"_blank\" href=\"http://openstreetmap.org\"\u003eOpenStreetMap\u003c/a\u003e, under \u003ca target=\"_blank\" href=\"http://www.openstreetmap.org/copyright\"\u003eODbL\u003c/a\u003e.", "detectRetina": false, "maxNativeZoom": 18, "maxZoom": 18, "minZoom": 0, "noWrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
+            ).addTo(map_5298c17a9082dae54de9e1d6354070f3);
+        
+    
+            var marker_38bf1db2f0ee7fb77355cd4a61231f9d = L.marker(
+                [37.5507563, 126.9254901],
+                {}
+            ).addTo(map_5298c17a9082dae54de9e1d6354070f3);
+        
+    
+        var custom_icon_48f3dfb52a3ce0a70424eb128a53fb2a = L.icon({"iconSize": [50, 50], "iconUrl": "https://data.hossam.kr/ho.png"});
+        marker_38bf1db2f0ee7fb77355cd4a61231f9d.setIcon(custom_icon_48f3dfb52a3ce0a70424eb128a53fb2a);
+        
+    
+        var popup_c804c4c3d852c9f3373b4330cf06d6ec = L.popup({"maxWidth": "100%"});
+
+        
+            
+                var html_f41f878671fef2278526cddd18cf7cf7 = $(`<div id="html_f41f878671fef2278526cddd18cf7cf7" style="width: 100.0%; height: 100.0%;"><div style='white-space: nowrap'><h3>홍익대학교 서울캠퍼스</h3><img src='https://megaitacademy.com/html/images//it_brand/sec08_img03.jpg' width='100%'><br/><p>tel: <a href='tel:010-7284-2384'>010-7284-2384</a></p><p>서울특별시 마포구 와우산로 94</p></div></div>`)[0];
+                popup_c804c4c3d852c9f3373b4330cf06d6ec.setContent(html_f41f878671fef2278526cddd18cf7cf7);
+            
+        
+
+        marker_38bf1db2f0ee7fb77355cd4a61231f9d.bindPopup(popup_c804c4c3d852c9f3373b4330cf06d6ec)
+        ;
+
+        
+    
+</script>
+</html>

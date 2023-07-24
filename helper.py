@@ -4,6 +4,7 @@ from math import sqrt
 from scipy.stats import t
 from sklearn.impute import SimpleImputer
 from scipy.stats import shapiro, normaltest, ks_2samp, bartlett, fligner, levene, chi2_contingency
+from scipy import stats
 
 
 def replaceMissingValue(df):
@@ -136,3 +137,20 @@ def independence_test(*any):
 
 def all_test(*any) :
     return pd.concat([normality_test(*any),equal_variance_test(*any),independence_test(*any)])
+
+
+
+def pearson_r(df) :
+    names = df.columns 
+    n = len(names)
+    pv=0.05
+    data = []
+    for i in range(0,n):
+        j=i+1 if i<(n-1) else 0
+        fields = names[i] +"vs" +names[j]
+        s,p = stats.pearsonr(df[names[i]],df[names[j]])
+        result = p<pv
+        data.append({'fields': fields, 'statistic': s, 'pvalue': p, 'result': result})
+    rdf = pd.DataFrame(data)
+    rdf.set_index('fields', inplace=True)
+    return rdf

@@ -530,23 +530,23 @@ def my_logit(data,y,x):
     df['예측결과'] = df['예측값']>0.5
 
     ## 혼동행력 
-    cm = confusion_matrix(df['합격여부'],df['예측결과'])
+    cm = confusion_matrix(df[y],df['예측결과'])
     tn,tp,   fn,fp = cm.ravel()
     cmdf = pd.DataFrame(cm,index =['True', 'False'], columns=['Positive', 'Negative'])
     ## RAS
-    ras = roc_auc_score(df['합격여부'],df['예측결과'])
+    ras = roc_auc_score(df[y],df['예측결과'])
     # 위양성율, 재현율, 임계값(사용안함)
-    fpr, tpr, thresholds = roc_curve(df['합격여부'], df['예측결과'])
+    fpr, tpr, thresholds = roc_curve(df[y], df['예측결과'])
 
     # 정확도
-    acc = accuracy_score(df['합격여부'], df['예측결과'])
+    acc = accuracy_score(df[y], df['예측결과'])
 
     # 정밀도
-    pre = precision_score(df['합격여부'], df['예측결과'])
+    pre = precision_score(df[y], df['예측결과'])
     ## 재현율
-    recall = recall_score(df['합격여부'],df['예측결과'])
+    recall = recall_score(df[y],df['예측결과'])
     # F1 score
-    f1 = f1_score(df['합격여부'],df['예측결과'])
+    f1 = f1_score(df[y],df['예측결과'])
     # 위양성율
     fallout = fp / (fp + tn)
 

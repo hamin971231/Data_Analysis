@@ -14,7 +14,14 @@ from pca import pca
 from statsmodels.formula.api import logit
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, precision_score, f1_score,recall_score
 
-
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.seasonal import seasonal_decompose
+from pmdarima.arima import auto_arima
+import seaborn as sb
+from matplotlib import pyplot as plt
+from tabulate import tabulate
 
 def setCategory(df, fields=[]):
     """
@@ -570,3 +577,91 @@ def my_logit(data,y,x):
     logit_result.odds_rate_df = odds_rate_df
 
     return logit_result
+
+
+def exp_timedata(data,yname,sd_model="m",max_diff=1):
+    df = data.copy()
+
+    ## 데이터 정상성 여부
+    stationality = False
+
+    ## 반복 수행 횟수
+
+    count = 0 
+
+    # 결측치 존재 여부
+    na_count = df[yname].isnull().sum()
+    print('결측치 수 : ',na_count)
+
+    ## Box Plot
+    sb.boxplot(data=df, y=yname)
+    plt.show()
+    plt.close()
+
+    ## 시계열 분해
+
+    model_name ='multiplicative' if sd_model=='m' else 'additive'
+    sd = seasonal_decompose(df[yname],model=model_name)
+
+    figure = sd.plot()
+    figure.set_figwidth(15)
+    figure.set_figheight(16)
+    fig, ax1,ax2,ax3,ax4 = figure.get_children()
+    figure.subplots_adjust(hspace = 0.4)
+    ax1.set_ylabel("Original")
+    ax1.grid(True)
+    ax2.grid(True)
+    ax3.grid(True)
+    ax4.grid(True)
+
+    plt.show()
+
+    while not stationality:
+        if count == 0 :
+            print("=========== 원본 데이터 ===========")
+        else : 
+            print("=========== %d차 차분 데이터 ===========" % count)
+        
+        # ADF test 
+        ar = adfuller(df[yname])
+        ## 리스트를 원소로 갖는 딕셔너리
+        ardict = {
+            '검정통계량 (ADF Statistic) ' : [ar[0]],
+            'p-value ':[ar[1]],
+            '최적 차수 ':[ar[2]],
+            '관측치 개수':[ar[3]]
+        }
+        for key,value in ar[4].items() : 
+            ardict['기각값 %s' % key] = value
+        
+        stationality = ar[1]<0.05
+        ardict['데이터 정상성 여부(0=Flase,1=True)'] = stationality
+
+        ardf = pd.DataFrame(ardict,index = ['ADF']).T
+        print(tabulate(ardf, headers=["ADF", ""], tablefmt='psql', numalign="right"))
+    
+        # ACF, PACF 검정
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(15, 12))
+        fig.subplots_adjust(hspace=0.4)
+
+        ax1.title.set_text("Original")
+        sb.lineplot(data=df, x=df.index, y=yname, ax=ax1)
+
+        ax2.title.set_text("ACF Test")
+        plot_acf(df[yname], ax=ax2)
+        
+        ax3.title.set_text("PACF Test")
+        plot_pacf(df[yname], ax=ax3)
+        
+        plt.show()
+        plt.close()
+
+        # 차분 수행
+        
+        df = df.diff().dropna()
+
+        ## 반복을 계속할지 여부 판단
+        count +=1
+        if count == max_diff:
+            break
+

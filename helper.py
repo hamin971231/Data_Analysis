@@ -680,7 +680,7 @@ def set_datetime_index(df,field = None, inplace = False):
     """
     if inplace:
         if field is not None :
-            df.set_index(filed,inplace = True)
+            df.set_index(field,inplace = True)
         df.index = pd.DatetimeIndex(df.index.values,freq = df.index.inferred_freq)
         df.sort_index(inplace = True)
     else : 

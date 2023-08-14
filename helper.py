@@ -23,7 +23,7 @@ import seaborn as sb
 from matplotlib import pyplot as plt
 from tabulate import tabulate
 
-def setCategory(df, fields=[]):
+def setCategory(df, fields=[],labelling=True):
     """
     데이터 프레임에서 지정된 필드를 범주형으로 변경한다.
 
@@ -54,20 +54,25 @@ def setCategory(df, fields=[]):
                 continue
 
             # 가져온 변수명에 대해 값의 종류별로 빈도를 카운트 한 후 인덱스 이름순으로 정렬
-            vc = cdf[field_name].value_counts().sort_index()
+            # vc = cdf[field_name].value_counts().sort_index()
             # print(vc)
 
             # 인덱스 이름순으로 정렬된 값의 종류별로 반복 처리
-            for ii, vv in enumerate(list(vc.index)):
+            # for ii, vv in enumerate(list(vc.index)):
                 # 일련번호값 생성
-                vnum = ii + 1
+                # vnum = ii + 1
                 # print(vv, " -->", vnum)
 
                 # 일련번호값으로 치환
-                cdf.loc[cdf[field_name] == vv, field_name] = vnum
+            # cdf.loc[cdf[field_name] == vv, field_name] = vnum
 
             # 해당 변수의 데이터 타입을 범주형으로 변환
             cdf[field_name] = cdf[field_name].astype('category')
+            if labelling : 
+                mydict = {}
+                for i,v in enumerate(cdf[field_name].dtypes.categories) :
+                    mydict[v]=i
+                cdf[field_name] = cdf[field_name].map(mydict).astype(int)
 
     return cdf
 def replaceMissingValue(df):
@@ -218,7 +223,7 @@ def pearson_r(df) :
     rdf.set_index('fields', inplace=True)
     return rdf
 
-def ext_ols(data,y,x) :
+def ext_ols(data,y=None,x=None,expr=None) :
     """
     회귀분석을 수해한다.
 
@@ -228,12 +233,23 @@ def ext_ols(data,y,x) :
     - y: 종속변수 이름
     - x: 독립변수의 이름들(리스트)
     """
-    # 독립변수의 이름이 리스트가 아니면 리스트로 변환
-    if type(x) != list :
-        x= [x]
-    ## 종속변수 ~ 독힙변수1 + 독립변수2 + ... 형태의 식을 생성
-    expr = "%s ~ %s" % (y,"+".join(x))
-
+    df = data.copy()
+    if not expr :
+        # 독립변수의 이름이 리스트가 아니면 리스트로 변환
+        if type(x) != list :
+            x= [x]
+        ## 종속변수 ~ 독힙변수1 + 독립변수2 + ... 형태의 식을 생성
+        expr = "%s ~ %s" % (y,"+".join(x))
+    else : 
+        x= []
+        p = expr.find('~')
+        y = expr[:p].strip()
+        x_tmp= expr[p+1:]
+        x_list = x_tmp.split('+')
+        for i in x_list:
+            k = i.strip()
+            if k :
+                x.append(k)
     # 회귀모델 생성
     model = ols(expr,data=data)
     ## q분석수행
@@ -394,7 +410,7 @@ class OlsResult :
     def varstr(self, value):
         self._varstr = value
 
-def my_ols(data,x,y) :
+def my_ols(data,x,y,expr=None) :
     model, fit, summary, table, result, goodness, varstr = ext_ols(data, y, x)
     ols_result = OlsResult()
     ols_result.model = model

@@ -1,19 +1,19 @@
 import numpy as np
 import pandas as pd
 from math import sqrt
-from scipy.stats import t
 from scipy.stats import t, pearsonr, spearmanr
 from sklearn.impute import SimpleImputer
 from scipy.stats import shapiro, normaltest, ks_2samp, bartlett, fligner, levene, chi2_contingency
-from scipy import stats
+#from scipy import stats
 from statsmodels.formula.api import ols
-import re
+#import re
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from sklearn.preprocessing import StandardScaler,PolynomialFeatures
-
+from sklearn.model_selection import train_test_split
 from pca import pca
 from statsmodels.formula.api import logit
-from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, precision_score, f1_score,recall_score
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, precision_score, f1_score,recall_score,r2_score,mean_squared_error,mean_absolute_error
+from sklearn.linear_model import LinearRegression
 
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.stattools import adfuller
@@ -335,6 +335,77 @@ def ext_ols(data,y=None,x=None,expr=None) :
     # 리턴
     return (model, fit, summary, table, result, goodness, varstr)
 
+class RegMetric:
+    def __init__(self, y, y_pred):
+        # 설명력
+        self._r2 = r2_score(y, y_pred)
+        # 평균절대오차
+        self._mae = mean_absolute_error(y, y_pred)
+        # 평균 제곱 오차
+        self._mse = mean_squared_error(y, y_pred)
+        # 평균 오차
+        self._rmse = np.sqrt(self._mse)
+        
+        # 평균 절대 백분오차 비율
+        if type(y) ==pd.Series:
+            self._mape = np.mean(np.abs((y.values - y_pred) / y.values) * 100)
+        else:
+            self._mape = np.mean(np.abs((y - y_pred) / y) * 100)
+        
+        # 평균 비율 오차
+        if type(y) == pd.Series:   
+            self._mpe = np.mean((y.values - y_pred) / y.values * 100)
+        else:
+            self._mpe = np.mean((y - y_pred) / y * 100)
+
+    @property
+    def r2(self):
+        return self._r2
+
+    @r2.setter
+    def r2(self, value):
+        self._r2 = value
+
+    @property
+    def mae(self):
+        return self._mae
+
+    @mae.setter
+    def mae(self, value):
+        self._mae = value
+
+    @property
+    def mse(self):
+        return self._mse
+
+    @mse.setter
+    def mse(self, value):
+        self._mse = value
+
+    @property
+    def rmse(self):
+        return self._rmse
+
+    @rmse.setter
+    def rmse(self, value):
+        self._rmse = value
+
+    @property
+    def mape(self):
+        return self._mape
+
+    @mape.setter
+    def mape(self, value):
+        self._mape = value
+
+    @property
+    def mpe(self):
+        return self._mpe
+
+    @mpe.setter
+    def mpe(self, value):
+        self._mpe = value
+
 class OlsResult :
     def __init__(self):
         self._model = None
@@ -343,8 +414,11 @@ class OlsResult :
         self._table = None
         self._result = None
         self._goodness = None
-        self.varstr = None
-
+        self._varstr = None
+        self._coef =None
+        self._intercept = None
+        self._trainRegMetric = None
+        self._testRegMetric = None
     @property 
     def model(self) :
         """
@@ -410,6 +484,37 @@ class OlsResult :
     @varstr.setter
     def varstr(self, value):
         self._varstr = value
+
+    @property
+    def coef(self):
+        return self._coef
+    @coef.setter
+    def coef(self,value):
+        self._coef = value
+    
+    @property
+    def intercept(self):
+        return self._intercept
+    @intercept.setter
+    def intercept(self,value):
+        self._intercept= value
+    @property
+    def trainRegMetric(self):
+        return self._trainRegMetric
+    @trainRegMetric.setter
+    def trainRegMetric(self,value):
+        self._trainRegMetric = value
+    @property
+    def testRegMetric(self):
+        return self._testRegMetric
+    @testRegMetric.setter
+    def testRegMetric(self,value):
+        self._testRegMetric = value
+    def setRegMetric(self,y_train,y_train_pred,y_test=None,y_test_pred=None):
+        self.trainRegMetric = RegMetric(y_train,y_train_pred)
+
+        if y_test is not None and y_test_pred is not None :
+            self.testRegMetric = RegMetric(y_test,y_test_pred)           
 
 def my_ols(data,x,y,expr=None) :
     model, fit, summary, table, result, goodness, varstr = ext_ols(data, y, x)
@@ -787,3 +892,47 @@ def regplot(x_left, y_left, y_left_pred=None, left_title=None, x_right=None, y_r
         
     plt.show()
     plt.close()
+
+def ml_ols(data,xnames,yname,degree=1,test_size=0.25,scailing=False,random_state=777):
+    ## 표준화 안되있으면 표준화 수행
+    if scailing:
+        data =scailing()
+
+    # 독립변수 이름이 문자열로 전달되었다면 콤마로 잘라서 진행
+    if type(xnames) == str :
+        xnames = xnames.split(',')
+
+    ## 독립변수 추출
+    x= data.filter(xnames)
+    ## w종속변수 추출
+    y= data.filter([yname])
+
+    ## 2차식 이상으로 설정되어 있으면 차수에 맞게 변환
+    if degree > 1 :
+        x = convertPoly(x,degree=degree)
+
+    
+    ## 데이터 분할비율 0보다 크면 분할 수행
+    if test_size > 0:
+        x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=test_size,random_state=random_state)
+    else:
+        x_train = x
+        y_train = y
+        x_test = None
+        y_test = None
+    # 회귀분석 수행
+    model = LinearRegression()
+    fit = model.fit(x_train, y_train)
+    
+    result = OlsResult()
+    result.model = model
+    result.fit = fit
+    result.coef = fit.coef_
+    result.intercept = fit.intercept_
+    
+    if x_test is not None and y_test is not None:
+        result.setRegMetric(y_train, fit.predict(x_train), y_test, fit.predict(x_test))
+    else:
+        result.setRegMetric(y_train, fit.predict(x_train))
+        
+    return result

@@ -4,7 +4,7 @@ from math import sqrt
 from scipy.stats import t, pearsonr, spearmanr
 from sklearn.impute import SimpleImputer
 from scipy.stats import shapiro, normaltest, ks_2samp, bartlett, fligner, levene, chi2_contingency
-#from scipy import stats
+from scipy import stats
 from statsmodels.formula.api import ols
 #import re
 from statsmodels.stats.outliers_influence import variance_inflation_factor
@@ -408,6 +408,16 @@ class RegMetric:
 
 class OlsResult :
     def __init__(self):
+        self._x_train = None
+        self._y_train = None
+        self._train_pred = None
+        self._x_test = None
+        self._y_test = None
+        self._test_pred = None
+
+
+
+
         self._model = None
         self._fit = None
         self._summary = None
@@ -419,6 +429,55 @@ class OlsResult :
         self._intercept = None
         self._trainRegMetric = None
         self._testRegMetric = None
+        
+    @property
+    def x_train(self):
+        return self._x_train
+
+    @x_train.setter
+    def x_train(self, value):
+        self._x_train = value
+
+    @property
+    def y_train(self):
+        return self._y_train
+
+    @y_train.setter
+    def y_train(self, value):
+        self._y_train = value
+
+    @property
+    def train_pred(self):
+        return self._train_pred
+
+    @train_pred.setter
+    def train_pred(self, value):
+        self._train_pred = value
+
+    @property
+    def x_test(self):
+        return self._x_test
+
+    @x_test.setter
+    def x_test(self, value):
+        self._x_test = value
+
+    @property
+    def y_test(self):
+        return self._y_test
+
+    @y_test.setter
+    def y_test(self, value):
+        self._y_test = value
+
+    @property
+    def test_pred(self):
+        return self._test_pred
+
+    @test_pred.setter
+    def test_pred(self, value):
+        self._test_pred = value
+
     @property 
     def model(self) :
         """
@@ -515,7 +574,7 @@ class OlsResult :
 
         if y_test is not None and y_test_pred is not None :
             self.testRegMetric = RegMetric(y_test,y_test_pred)           
-
+	
 def my_ols(data,x,y,expr=None) :
     model, fit, summary, table, result, goodness, varstr = ext_ols(data, y, x)
     ols_result = OlsResult()
@@ -896,25 +955,23 @@ def regplot(x_left, y_left, y_left_pred=None, left_title=None, x_right=None, y_r
 def ml_ols(data,xnames,yname,degree=1,test_size=0.25,scailing=False,random_state=777):
     ## 표준화 안되있으면 표준화 수행
     if scailing:
-        data =scailing()
+        data =scailing(data)
 
-    # 독립변수 이름이 문자열로 전달되었다면 콤마로 잘라서 진행
-    if type(xnames) == str :
+     # 독립변수 이름이 문자열로 전달되었다면 콤마 단위로 잘라서 리스트로 변환
+    if type(xnames) == str:
         xnames = xnames.split(',')
-
-    ## 독립변수 추출
-    x= data.filter(xnames)
-    ## w종속변수 추출
-    y= data.filter([yname])
-
-    ## 2차식 이상으로 설정되어 있으면 차수에 맞게 변환
-    if degree > 1 :
-        x = convertPoly(x,degree=degree)
-
+    # 독립변수 추출
+    x = data.filter(xnames)
     
-    ## 데이터 분할비율 0보다 크면 분할 수행
+    # 종속변수 추출
+    y = data[yname]
+    # 2차식 이상으로 설정되었다면 차수에 맞게 변환
+    if degree > 1:
+        x = convertPoly(x, degree=degree)
+    
+    # 데이터 분할 비율이 0보다 크다면 분할 수행
     if test_size > 0:
-        x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=test_size,random_state=random_state)
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=random_state)
     else:
         x_train = x
         y_train = y
@@ -929,10 +986,69 @@ def ml_ols(data,xnames,yname,degree=1,test_size=0.25,scailing=False,random_state
     result.fit = fit
     result.coef = fit.coef_
     result.intercept = fit.intercept_
+
+    result.x_train = x_train.copy()
+    result.y_train = y_train.copy()
+    result.train_pred = result.fit.predict(result.x_train)
     
     if x_test is not None and y_test is not None:
-        result.setRegMetric(y_train, fit.predict(x_train), y_test, fit.predict(x_test))
-    else:
-        result.setRegMetric(y_train, fit.predict(x_train))
+        result.x_test = x_test.copy()
+        result.y_test = y_test.copy()
+        result.test_pred = result.fit.predict(result.x_test)
+        result.setRegMetric(y_train, result.train_pred, y_test, result.test_pred)
         
+    else:
+        result.setRegMetric(y_train, result.train_pred)
+        
+    # 절편과 계수를 하나의 배열로 결합
+    params = np.append(result.intercept, result.coef)    
+    
+    # 상수항 추가하기
+    designX = x.copy()
+    designX.insert(0, '상수', 1)   
+    
+    # 행렬곱 구하기
+    dot = np.dot(designX.T,designX)
+    
+    # 행렬곱에 대한 역행렬 
+    inv = np.linalg.inv(dot)  
+    
+    # 역행렬의 대각선 반환  
+    dia = inv.diagonal()
+    
+    # 평균 제곱오차 구하기
+    predictions = result.fit.predict(x)
+    MSE = (sum((y.values-predictions)**2)) / (len(designX)-len(designX.iloc[0]))
+    
+    # 표준오차
+    se_b = np.sqrt(MSE * dia)
+    
+    # t값
+    ts_b = params / se_b
+    
+    # p값
+    p_values = [2*(1-stats.t.cdf(np.abs(i),(len(designX)-len(designX.iloc[0])))) for i in ts_b]
+    
+    # vif
+    vif = []
+    # 룬현데이터에 대한 독립변수와 종속변수를 결합한 완전한 데이터프레임 준비
+    data= x_train.copy()
+    data[yname] = y_train
+
+    for i, v in enumerate(x_train.column):
+        j = list(data.columns).index(v)
+        vif.append(variance_inflation_factor(data, j))
+    
+    # 결과표 구성하기
+    result.table = pd.DataFrame({
+        "종속변수": [yname] * len(x_train.columns),
+        "독립변수": x_train.columns,
+        "B": result.coef[0],
+        "표준오차": se_b[1:],
+        "β": 0,
+        "t": ts_b[1:],
+        "유의확률": p_values[1:],
+        "VIF": vif,
+    })   
     return result
+    

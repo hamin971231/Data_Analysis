@@ -1079,6 +1079,7 @@ def tf_result_plot(result, figsize=(15,5),dpi = 500):
     v.grid()
     v.lengend()
 
+<<<<<<< HEAD
     plt.show()
     plt.close()
 
@@ -1134,3 +1135,8 @@ def tf_logit_result(model, fit, x, y):
     logit_result.odds_rate_df = odds_ratio
     
     return logit_result
+=======
+plt.show()
+plt.close()
+
+>>>>>>> e2c013ef91ec05569758ff015be7a440eff527da

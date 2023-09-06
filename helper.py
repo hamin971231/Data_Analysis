@@ -1052,3 +1052,85 @@ def ml_ols(data,xnames,yname,degree=1,test_size=0.25,scailing=False,random_state
     })   
     return result
     
+
+
+def tf_result_plot(result, figsize=(15,5),dpi = 500):
+    ## 학습결과에 대한 데이터 프레임 생성
+    result_df = pd.DataFrame(result.history)
+    result_df['epochs'] = result.index+1
+    result_df.set_index('epochs',inplace=True)
+
+    ## 학습 결과 그래프의 컬럼명
+    column_names = result_df.columns 
+    # 학습데이터에 대한 필드이름
+    train_column_name = [column_names[0] ,column_names[1]]
+
+    ## 검증 데이터에 대한 필드이름
+    test_column_name = [column_names[2],column_names[3]]
+
+    ## 학습 결과 그래프
+    fig,ax = plt.subplots(1,2,figsize=figsize,dpi=dpi)
+    
+    sb.lineplot(x=result_df.index,y=train_column_name[i],data=result_df,color='blue',label=train_column_name[i],ax=ax[v])
+    sn.lineplot(x=result_df.index,y=test_column_name[i],data=result_df,color='orange',label=test_column_name[i],ax=ax[v])
+    v.set_title(train_column_naems[i])
+    v.set_xlabel('epochs')
+    v.set_ylabel(train_column_name[i])
+    v.grid()
+    v.lengend()
+
+    plt.show()
+    plt.close()
+
+def tf_logit_result(model, fit, x, y):    
+    # 예측값 생성
+    pred_bool = model.predict(x).flatten() > 0.5
+    pred = pred_bool.astype(int)
+    
+    # 혼동행렬
+    cm = confusion_matrix(y, pred)
+    tn, fp, fn, tp = cm.ravel()
+    cmdf = pd.DataFrame([[tn, fn], [fp, tp]], index=['True', 'False'], columns=['Negative', 'Positive'])
+
+    # RAS
+    ras = roc_auc_score(y, pred)
+
+    # 위양성율, 재현율, 임계값(사용안함)
+    fpr, tpr, thresholds = roc_curve(y, pred)
+
+    # 정확도
+    acc = accuracy_score(y, pred)
+
+    # 정밀도
+    pre = precision_score(y, pred)
+
+    # 재현율
+    recall = recall_score(y, pred)
+
+    # F1 score
+    f1 = f1_score(y, pred)
+
+    # 위양성율
+    fallout = fp / (fp + tn)
+
+    # 특이성
+    spe = 1 - fallout
+
+    result_df = pd.DataFrame({'정확도(Accuracy)':[acc], '정밀도(Precision)':[pre], '재현율(Recall, TPR)':[recall], '위양성율(Fallout, FPR)': [fallout], '특이성(Specificity, TNR)':[spe], 'RAS': [ras], 'f1_score':[f1]})
+
+    # 모델 가중치와 편향 얻기
+    weights, bias = model.layers[1].get_weights()
+    
+    # 오즈비 계산
+    odds_ratio = np.exp(weights[0])
+
+    logit_result = LogitResult()
+    logit_result.model = model
+    logit_result.fit = fit
+    logit_result.summary = model.summary()
+    #logit_result.prs = prs
+    logit_result.cmdf = cmdf
+    logit_result.result_df = result_df
+    logit_result.odds_rate_df = odds_ratio
+    
+    return logit_result
